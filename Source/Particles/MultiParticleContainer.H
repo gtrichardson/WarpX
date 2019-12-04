@@ -11,6 +11,7 @@
 
 #include <AMReX_Particles.H>
 #ifdef WARPX_QED
+    #include <QedChiFunctions.H>
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
 #endif
@@ -218,13 +219,53 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    std::shared_ptr<BreitWheelerEngine> shr_p_bw_engine;
-    std::shared_ptr<QuantumSynchrotronEngine> shr_p_qs_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
     //_______________________________
 
-    //Initialize QED engines and provides smart pointers
-    //to species who need QED processes
+    /**
+     * Initialize QED engines and provides smart pointers
+     * to species who need QED processes
+     */
     void InitQED ();
+
+    //Variables to store how many species need a QED process
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
+    //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitQuantumSync ();
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitBreitWheeler ();
+
+    /**
+     * Called by InitQuantumSync if a new table has
+     * to be generated.
+     */
+    void QuantumSyncGenerateTable();
+
+    /**
+     * Called by InitBreitWheeler if a new table has
+     * to be generated.
+     */
+    void BreitWheelerGenerateTable();
+
 #endif
 
 private:
