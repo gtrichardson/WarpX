@@ -71,10 +71,7 @@ public:
     void AssignExternalFieldOnParticles ( WarpXParIter& pti,
                                           RealVector& Exp, RealVector& Eyp,
                                           RealVector& Ezp, RealVector& Bxp,
-                                          RealVector& Byp, RealVector& Bzp,
-                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp, int lev);
+                                          RealVector& Byp, RealVector& Bzp, int lev);
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
@@ -162,11 +159,7 @@ public:
                          amrex::Real dt,
                          DtType a_dt_type=DtType::Full) override;
 
-    virtual void PushPX(WarpXParIter& pti,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
-                        amrex::Real dt, DtType a_dt_type=DtType::Full);
+    virtual void PushPX (WarpXParIter& pti, amrex::Real dt, DtType a_dt_type=DtType::Full);
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -189,8 +182,7 @@ public:
                         RealVector& uzp,
                         RealVector& wp );
 
-    void copy_attribs(WarpXParIter& pti,const amrex::ParticleReal* xp,
-                        const amrex::ParticleReal* yp, const amrex::ParticleReal* zp);
+    void copy_attribs (WarpXParIter& pti, const ParticleType* pstruct);
 
     virtual void PostRestart () final {}
 
