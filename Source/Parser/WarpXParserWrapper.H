@@ -41,7 +41,7 @@ struct ParserWrapper
     {
         return m_parser(p.pos(0),p.pos(1),p.pos(2));
     }
-    
+
     GpuParser m_parser;
 };
 
