@@ -1474,8 +1474,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
     // Loop over particle interator
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const auto& aos = pti.GetArrayOfStructs();
-        const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr();
+        const auto get_position = GetPosition(pti);
 
         const amrex::Vector<int> ppc_nd = plasma_injector->num_particles_per_cell_each_dim;
         const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -1500,6 +1499,8 @@ PhysicalParticleContainer::SplitParticles(int lev)
         auto& uzp = attribs[PIdx::uz];
         const long np = pti.numParticles();
         for(int i=0; i<np; i++){
+            Real xp, yp, zp;
+            get_position(i, xp, yp, zp);
             auto& p = particles[i];
             if (p.id() == DoSplitParticleID){
                 // If particle is tagged, split it and put the
@@ -1512,9 +1513,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int kshift = -1; kshift < 2; kshift +=2 ){
                             // Add one particle with offset in x and z
-                            psplit_x.push_back( pstruct[i].pos(0) + ishift*split_offset[0] );
-                            psplit_y.push_back( pstruct[i].pos(1) );
-                            psplit_z.push_back( pstruct[i].pos(2) + kshift*split_offset[2] );
+                            psplit_x.push_back( xp + ishift*split_offset[0] );
+                            psplit_y.push_back( yp );
+                            psplit_z.push_back( zp + kshift*split_offset[2] );
                             psplit_ux.push_back( uxp[i] );
                             psplit_uy.push_back( uyp[i] );
                             psplit_uz.push_back( uzp[i] );
@@ -1526,17 +1527,17 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
-                        psplit_x.push_back( pstruct[i].pos(0) + ishift*split_offset[0] );
-                        psplit_y.push_back( pstruct[i].pos(1) );
-                        psplit_z.push_back( pstruct[i].pos(2) );
+                        psplit_x.push_back( xp + ishift*split_offset[0] );
+                        psplit_y.push_back( yp );
+                        psplit_z.push_back( zp );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
                         psplit_w.push_back( wp[i]/np_split );
                         // Add one particle with offset in z
-                        psplit_x.push_back( pstruct[i].pos(0) );
-                        psplit_y.push_back( pstruct[i].pos(1) );
-                        psplit_z.push_back( pstruct[i].pos(2) + ishift*split_offset[2] );
+                        psplit_x.push_back( xp );
+                        psplit_y.push_back( yp );
+                        psplit_z.push_back( zp + ishift*split_offset[2] );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
@@ -1551,9 +1552,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         for (int jshift = -1; jshift < 2; jshift +=2 ){
                             for (int kshift = -1; kshift < 2; kshift +=2 ){
                                 // Add one particle with offset in x, y and z
-                                psplit_x.push_back( pstruct[i].pos(0) + ishift*split_offset[0] );
-                                psplit_y.push_back( pstruct[i].pos(1) + jshift*split_offset[1] );
-                                psplit_z.push_back( pstruct[i].pos(2) + kshift*split_offset[2] );
+                                psplit_x.push_back( xp + ishift*split_offset[0] );
+                                psplit_y.push_back( yp + jshift*split_offset[1] );
+                                psplit_z.push_back( zp + kshift*split_offset[2] );
                                 psplit_ux.push_back( uxp[i] );
                                 psplit_uy.push_back( uyp[i] );
                                 psplit_uz.push_back( uzp[i] );
@@ -1566,25 +1567,25 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     // 6 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
-                        psplit_x.push_back( pstruct[i].pos(0) + ishift*split_offset[0] );
-                        psplit_y.push_back( pstruct[i].pos(1) );
-                        psplit_z.push_back( pstruct[i].pos(2) );
+                        psplit_x.push_back( xp + ishift*split_offset[0] );
+                        psplit_y.push_back( yp );
+                        psplit_z.push_back( zp );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
                         psplit_w.push_back( wp[i]/np_split );
                         // Add one particle with offset in y
-                        psplit_x.push_back( pstruct[i].pos(0) );
-                        psplit_y.push_back( pstruct[i].pos(1) + ishift*split_offset[1] );
-                        psplit_z.push_back( pstruct[i].pos(2) );
+                        psplit_x.push_back( xp );
+                        psplit_y.push_back( yp + ishift*split_offset[1] );
+                        psplit_z.push_back( zp );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
                         psplit_w.push_back( wp[i]/np_split );
                         // Add one particle with offset in z
-                        psplit_x.push_back( pstruct[i].pos(0) );
-                        psplit_y.push_back( pstruct[i].pos(1) );
-                        psplit_z.push_back( pstruct[i].pos(2) + ishift*split_offset[2] );
+                        psplit_x.push_back( xp );
+                        psplit_y.push_back( yp );
+                        psplit_z.push_back( zp + ishift*split_offset[2] );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
