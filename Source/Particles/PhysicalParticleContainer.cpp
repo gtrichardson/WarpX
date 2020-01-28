@@ -1628,8 +1628,8 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
     auto& attribs = pti.GetAttribs();
     // Extract pointers to the different particle quantities
 
-    auto& aos = pti.GetArrayOfStructs();
-    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
+    const auto get_position = GetPosition(pti);
+          auto set_position = SetPosition(pti);
 
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
@@ -1643,7 +1643,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
 
     if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics && (a_dt_type!=DtType::SecondHalf))
     {
-        copy_attribs(pti, pstruct);
+        copy_attribs(pti);
     }
 
     int* AMREX_RESTRICT ion_lev = nullptr;
@@ -1676,7 +1676,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                                            Ex[i], Ey[i], Ez[i], Bx[i],
                                            By[i], Bz[i], q, m, dt);
                     }
-                    UpdatePosition( pstruct[i], ux[i], uy[i], uz[i], dt );
+                    Real x, y, z;
+                    get_position(i, x, y, z);
+                    UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                    set_position(i, x, y, z);
                 }
             );
         }else{
@@ -1686,7 +1689,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                     UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                                        Ex[i], Ey[i], Ez[i], Bx[i],
                                        By[i], Bz[i], q, m, dt);
-                    UpdatePosition( pstruct[i], ux[i], uy[i], uz[i], dt );
+                    Real x, y, z;
+                    get_position(i, x, y, z);
+                    UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                    set_position(i, x, y, z);
                 }
             );
         }
@@ -1700,8 +1706,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                UpdatePosition( pstruct[i],
-                                ux[i], uy[i], uz[i], dt );
+                Real x, y, z;
+                get_position(i, x, y, z);
+                UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                set_position(i, x, y, z);
             }
         );
 #endif
@@ -1714,8 +1722,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumBoris( ux[i], uy[i], uz[i],
                                      Ex[i], Ey[i], Ez[i], Bx[i],
                                      By[i], Bz[i], qp, m, dt);
-                UpdatePosition( pstruct[i],
-                      ux[i], uy[i], uz[i], dt );
+                Real x, y, z;
+                get_position(i, x, y, z);
+                UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                set_position(i, x, y, z);
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
@@ -1727,8 +1737,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumVay( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                UpdatePosition( pstruct[i],
-                                ux[i], uy[i], uz[i], dt );
+                Real x, y, z;
+                get_position(i, x, y, z);
+                UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                set_position(i, x, y, z);
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
@@ -1740,8 +1752,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                UpdatePosition( pstruct[i],
-                                ux[i], uy[i], uz[i], dt );
+                Real x, y, z;
+                get_position(i, x, y, z);
+                UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
+                set_position(i, x, y, z);                
             }
         );
     } else {
@@ -1911,7 +1925,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti, const ParticleType* pstruct)
+void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
 {
     auto& attribs = pti.GetAttribs();
     ParticleReal* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
@@ -1928,11 +1942,15 @@ void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti, const ParticleT
     ParticleReal* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
     ParticleReal* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
 
+    const auto get_position = GetPosition(pti);
+    
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
-                     xpold[i]=pstruct[i].pos(0);
-                     ypold[i]=pstruct[i].pos(1);
-                     zpold[i]=pstruct[i].pos(2);
+                     Real x, y, z;
+                     get_position(i, x, y, z);
+                     xpold[i]=x;
+                     ypold[i]=y;
+                     zpold[i]=z;
 
                      uxpold[i]=uxp[i];
                      uypold[i]=uyp[i];
@@ -2203,9 +2221,8 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     // Add guard cells to the box.
     box.grow(ngE);
 
-    const auto& aos = pti.GetArrayOfStructs();
-    const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr() + offset;
-
+    const auto get_position = GetPosition(pti, offset);
+    
     // Lower corner of tile box physical domain
     const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
 
@@ -2215,7 +2232,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     // different versions of template function doGatherShapeN
     if (WarpX::l_lower_order_in_v){
         if        (WarpX::nox == 1){
-            doGatherShapeN<1,1>(pstruct,
+            doGatherShapeN<1,1>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
@@ -2223,7 +2240,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 np_to_gather, dx,
                                 xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
-            doGatherShapeN<2,1>(pstruct,
+            doGatherShapeN<2,1>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
@@ -2231,7 +2248,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 np_to_gather, dx,
                                 xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
-            doGatherShapeN<3,1>(pstruct,
+            doGatherShapeN<3,1>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
@@ -2241,7 +2258,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
         }
     } else {
         if        (WarpX::nox == 1){
-            doGatherShapeN<1,0>(pstruct,
+            doGatherShapeN<1,0>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
@@ -2249,7 +2266,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 np_to_gather, dx,
                                 xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
-            doGatherShapeN<2,0>(pstruct,
+            doGatherShapeN<2,0>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
@@ -2257,7 +2274,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 np_to_gather, dx,
                                 xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
-            doGatherShapeN<3,0>(pstruct,
+            doGatherShapeN<3,0>(get_position,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
