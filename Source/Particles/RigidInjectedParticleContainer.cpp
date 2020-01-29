@@ -102,7 +102,7 @@ RigidInjectedParticleContainer::RemapParticles()
                     const long np = pti.numParticles();
                     for (int i=0 ; i < np ; i++) {
 
-                        Real xp, yp, zp;
+                        ParticleReal xp, yp, zp;
                         get_position(i, xp, yp, zp);
 
                         const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
@@ -162,7 +162,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
             const long np = pti.numParticles();
             for (int i=0 ; i < np ; i++) {
 
-                Real xp, yp, zp;
+                ParticleReal xp, yp, zp;
                 get_position(i, xp, yp, zp);
 
                 const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
@@ -264,7 +264,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
 
         amrex::ParallelFor( np,
                             [=] AMREX_GPU_DEVICE (long i) {
-                                Real xp, yp, zp;
+                                ParticleReal xp, yp, zp;
                                 get_position(i, xp, yp, zp);
                                 xp_save_ptr[i] = xp;
                                 yp_save_ptr[i] = yp;
@@ -283,7 +283,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         const Real vz_ave_boosted = vzbeam_ave_boosted;
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                                Real xp, yp, zp;
+                                ParticleReal xp, yp, zp;
                                 get_position(i, xp, yp, zp);
                                 const Real dtscale = dt - (z_plane_previous - zp)/(vz_ave_boosted + v_boost);
                                 if (0. < dtscale && dtscale < dt) {
@@ -317,7 +317,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         const Real inv_csq = 1./(PhysConst::c*PhysConst::c);
         amrex::ParallelFor( pti.numParticles(),
                             [=] AMREX_GPU_DEVICE (long i) {
-                                Real xp, yp, zp;
+                                ParticleReal xp, yp, zp;
                                 get_position(i, xp, yp, zp);
                                 if (zp <= z_plane_lev) {
                                     ux[i] = ux_save[i];

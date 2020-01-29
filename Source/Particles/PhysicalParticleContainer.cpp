@@ -1010,7 +1010,7 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       Real time = warpx.gett_new(lev);
       amrex::ParallelFor(pti.numParticles(),
                          [=] AMREX_GPU_DEVICE (long i) {
-                             Real x, y, z;
+                             ParticleReal x, y, z;
                              get_position(i, x, y, z);
                              Exp_data[i] = xfield_partparser->getField(x, y, z, time);
                              Eyp_data[i] = yfield_partparser->getField(x, y, z, time);
@@ -1032,7 +1032,7 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       Real time = warpx.gett_new(lev);
       amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                             Real x, y, z;
+                             ParticleReal x, y, z;
                              get_position(i, x, y, z);
                              Bxp_data[i] = xfield_partparser->getField(x, y, z, time);
                              Byp_data[i] = yfield_partparser->getField(x, y, z, time);
@@ -1499,7 +1499,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
         auto& uzp = attribs[PIdx::uz];
         const long np = pti.numParticles();
         for(int i=0; i<np; i++){
-            Real xp, yp, zp;
+            ParticleReal xp, yp, zp;
             get_position(i, xp, yp, zp);
             auto& p = particles[i];
             if (p.id() == DoSplitParticleID){
@@ -1677,7 +1677,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                                            Ex[i], Ey[i], Ez[i], Bx[i],
                                            By[i], Bz[i], q, m, dt);
                     }
-                    Real x, y, z;
+                    ParticleReal x, y, z;
                     get_position(i, x, y, z);
                     UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                     set_position(i, x, y, z);
@@ -1690,7 +1690,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                     UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                                        Ex[i], Ey[i], Ez[i], Bx[i],
                                        By[i], Bz[i], q, m, dt);
-                    Real x, y, z;
+                    ParticleReal x, y, z;
                     get_position(i, x, y, z);
                     UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                     set_position(i, x, y, z);
@@ -1707,7 +1707,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                Real x, y, z;
+                ParticleReal x, y, z;
                 get_position(i, x, y, z);
                 UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                 set_position(i, x, y, z);
@@ -1723,7 +1723,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumBoris( ux[i], uy[i], uz[i],
                                      Ex[i], Ey[i], Ez[i], Bx[i],
                                      By[i], Bz[i], qp, m, dt);
-                Real x, y, z;
+                ParticleReal x, y, z;
                 get_position(i, x, y, z);
                 UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                 set_position(i, x, y, z);
@@ -1738,7 +1738,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumVay( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                Real x, y, z;
+                ParticleReal x, y, z;
                 get_position(i, x, y, z);
                 UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                 set_position(i, x, y, z);
@@ -1753,7 +1753,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                Real x, y, z;
+                ParticleReal x, y, z;
                 get_position(i, x, y, z);
                 UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
                 set_position(i, x, y, z);
@@ -1947,7 +1947,7 @@ void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
 
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
-                     Real x, y, z;
+                     ParticleReal x, y, z;
                      get_position(i, x, y, z);
                      xpold[i]=x;
                      ypold[i]=y;
