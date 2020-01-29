@@ -95,15 +95,15 @@ RigidInjectedParticleContainer::RemapParticles()
                     auto& uyp = attribs[PIdx::uy];
                     auto& uzp = attribs[PIdx::uz];
 
-                    const auto get_position = GetPosition(pti);
-                          auto set_position = SetPosition(pti);
+                    const auto GetPosition = GetParticlePosition(pti);
+                          auto SetPosition = SetParticlePosition(pti);
 
                     // Loop over particles
                     const long np = pti.numParticles();
                     for (int i=0 ; i < np ; i++) {
 
                         ParticleReal xp, yp, zp;
-                        get_position(i, xp, yp, zp);
+                        GetPosition(i, xp, yp, zp);
 
                         const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
                         const Real vzpr = uzp[i]/gammapr;
@@ -118,7 +118,7 @@ RigidInjectedParticleContainer::RemapParticles()
                         // the motion from the average velocity
                         zp += tpr*vzpr - tpr*vzbeam_ave_boosted;
 
-                        set_position(i, xp, yp, zp);
+                        SetPosition(i, xp, yp, zp);
 
                     }
                 }
@@ -155,15 +155,15 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
 
-            const auto get_position = GetPosition(pti);
-                  auto set_position = SetPosition(pti);
+            const auto GetPosition = GetParticlePosition(pti);
+                  auto SetPosition = SetParticlePosition(pti);
 
             // Loop over particles
             const long np = pti.numParticles();
             for (int i=0 ; i < np ; i++) {
 
                 ParticleReal xp, yp, zp;
-                get_position(i, xp, yp, zp);
+                GetPosition(i, xp, yp, zp);
 
                 const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
 
@@ -208,7 +208,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                     zp = zpr - vzpr*tpr;
                 }
 
-                set_position(i, xp, yp, zp);
+                SetPosition(i, xp, yp, zp);
             }
         }
     }
@@ -228,8 +228,8 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
     Gpu::ManagedDeviceVector<ParticleReal> xp_save, yp_save, zp_save;
     RealVector uxp_save, uyp_save, uzp_save;
 
-    const auto get_position = GetPosition(pti);
-          auto set_position = SetPosition(pti);
+    const auto GetPosition = GetParticlePosition(pti);
+          auto SetPosition = SetParticlePosition(pti);
 
     ParticleReal* const AMREX_RESTRICT ux = uxp.dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = uyp.dataPtr();
@@ -265,7 +265,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         amrex::ParallelFor( np,
                             [=] AMREX_GPU_DEVICE (long i) {
                                 ParticleReal xp, yp, zp;
-                                get_position(i, xp, yp, zp);
+                                GetPosition(i, xp, yp, zp);
                                 xp_save_ptr[i] = xp;
                                 yp_save_ptr[i] = yp;
                                 zp_save_ptr[i] = zp;
@@ -284,7 +284,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
                                 ParticleReal xp, yp, zp;
-                                get_position(i, xp, yp, zp);
+                                GetPosition(i, xp, yp, zp);
                                 const Real dtscale = dt - (z_plane_previous - zp)/(vz_ave_boosted + v_boost);
                                 if (0. < dtscale && dtscale < dt) {
                                     Exp[i] *= dtscale;
@@ -318,7 +318,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         amrex::ParallelFor( pti.numParticles(),
                             [=] AMREX_GPU_DEVICE (long i) {
                                 ParticleReal xp, yp, zp;
-                                get_position(i, xp, yp, zp);
+                                GetPosition(i, xp, yp, zp);
                                 if (zp <= z_plane_lev) {
                                     ux[i] = ux_save[i];
                                     uy[i] = uy_save[i];
@@ -332,7 +332,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
                                         const Real gi = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
                                         zp = z_save[i] + dt*uz[i]*gi;
                                     }
-                                    set_position(i, xp, yp, zp);
+                                    SetPosition(i, xp, yp, zp);
                                 }
                             });
     }
@@ -431,7 +431,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
-            const auto get_position = GetPosition(pti);
+            const auto GetPosition = GetParticlePosition(pti);
             ParticleReal* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             ParticleReal* const AMREX_RESTRICT uypp = uyp.dataPtr();
             ParticleReal* const AMREX_RESTRICT uzpp = uzp.dataPtr();
@@ -499,7 +499,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             amrex::ParallelFor( pti.numParticles(),
                                 [=] AMREX_GPU_DEVICE (long i) {
                                     ParticleReal xp, yp, zp;
-                                    get_position(i, xp, yp, zp);
+                                    GetPosition(i, xp, yp, zp);
                                     if (zp <= zz) {
                                         uxpp[i] = ux_save[i];
                                         uypp[i] = uy_save[i];
