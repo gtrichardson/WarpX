@@ -12,7 +12,7 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_REAL.H>
 
-/** \brief Functor that can be used to extract the positions of the macroparticles  
+/** \brief Functor that can be used to extract the positions of the macroparticles
  *         inside a ParallelFor kernel
  *
  * \param a_pti iterator to the tile containing the macroparticles
@@ -62,7 +62,7 @@ struct GetParticlePosition
     }
 };
 
-/** \brief Functor that can be used to modify the positions of the macroparticles, 
+/** \brief Functor that can be used to modify the positions of the macroparticles,
  *         inside a ParallelFor kernel.
  *
  * \param a_pti iterator to the tile being modified
