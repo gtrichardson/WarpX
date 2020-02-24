@@ -20,6 +20,161 @@
 #include <GpuParser.H>
 #include <WarpXUtil.H>
 
+#include <cmath>
+
+namespace hackerman
+{
+	// Setting the order of the paraxial approximation
+	int order = 5;
+	
+	// Defining beam paramters
+	Real E0 = 1.e12;
+	Real w0 = 1.;
+	Real psi0 = 0.;
+	real k = 6283185307.18;
+		
+    // Defining Gaussian constants
+    Real Zr =0.5*k*w0*w0;
+    Real eps = w0/Zr;
+        
+    // New coordinate system
+    Real xi = z/w0;
+    Real nu = -y/w0;
+        
+    // misclanious
+    Real R = x+Zr*Zr/x;
+    Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
+    Real r2 = z*z+y*y;
+    Real rho2 = r2/(w0*w0);
+    Real rho4 = rho2*rho2;
+    Real rho6 = rho2*rho2*rho2;
+    Real rho8 = rho2*rho2*rho2*rho2;
+    Real psip = -k*x;
+    Real psir = k*r2/(2*R);
+    Real psig = std:atan(2*x/(k*w0*w0));
+	Real psi = psi0 + psip - psir + psig;
+    Real E = E0*w0/w*std::exp(-1*r2/(w*w));
+        
+    // Sine and Cosine terms
+    Real S0 = std::sin(psi);
+    Real S1 = (w0/w)*std:sin(psi+psig);
+    Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
+    Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
+    Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
+    Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
+    Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
+      
+    Real C0 = std::sin(psi);
+    Real C1 = (w0/w)*std:cos(psi+psig);
+    Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
+    Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
+    Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
+    Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
+    Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
+    
+    Real Antonins_Ex(Real x, Real y, Real z){
+        
+	    // Defining fields by gaussian orders
+	    Real Ex_ord0 = 0;
+		Real Ex_ord1 = C1;
+		Real Ex_ord2 = 0;
+		Real Ex_ord3 = -0.5*C2+rho2*C3-0.25*rho2*rho2*C4;
+		Real Ex_ord4 = 0;
+		Real Ex_ord5 = -3./8.*C3-3./8.*rho2*C4+17./16.*rho4*C5-3./8.*rho6*C6+rho8*C7/32.;
+
+		if(order >= 1){Ex = Ex + std::pow(eps,1)*Ex_ord1;}
+		if(order >= 3){Ex = Ex + std::pow(eps,3)*Ex_ord3;}
+		if(order >= 5){Ex = Ex + std::pow(eps,5)*Ex_ord5;}
+		
+		Ex = E*xi*Ex;
+		return Ex;
+		}
+	
+	Real Antonins_Ey(Real x, Real y, Real z){
+		// Intalizing field
+		Real Ey = 0;
+		
+		// Defining fields by gaussian orders
+		Real Ey_ord0 = 0;
+		Real Ey_ord1 = 0;
+		Real Ey_ord2 = S2;
+		Real Ey_ord3 = 0;
+		Real Ey_ord4 = rho2*S4-0.25*rho2*rho2*S5;
+		Real Ey_ord5 = 0;
+		
+		if(order >= 2){Ey = Ey + std::pow(eps,2)*Ey_ord2;}
+		if(order >= 4){Ey = Ey + std::pow(eps,4)*Ey_ord4;}
+
+		Ey = E*xi*nu*Ey;
+		return Ey;
+	}
+	
+	Real Antonins_Ez(Real x, Real y, Real z){
+		// Intalizing field
+		Real Ez = 0;
+		
+		// Defining fields by gaussian orders
+		Real Ez_ord0 = S0;
+		Real Ez_ord1 = 0;
+		Real Ez_ord2 = xi*xi*S2-0.25*rho4*S3;
+		Real Ez_ord3 = 0;
+		Real Ez_ord4 = .125*S2-0.25*rho2*S3-0.0625*rho2*(rho2-16*xi*xi)*S4-0.125*rho4*(rho2+2*xi*xi)*S5+0.03125*rho8*S6;
+		Real Ez_ord5 = 0;
+
+		
+		if(order >= 2){Ez = Ez + std::pow(eps,2)*Ez_ord2;}
+		if(order >= 4){Ez = Ez + std::pow(eps,4)*Ez_ord4;}
+		
+		Ez = E*Ez;
+		return Ez;
+	}
+	
+	Real Antonins_Bx(Real x, Real y, Real z){
+		// Intalizing field
+		Real Bx = 0;
+		
+		// Defining fields by gaussian orders
+		Real Bx_ord0 = 0;
+		Real Bx_ord1 = C1;
+		Real Bx_ord2 = 0;
+		Real Bx_ord3 = 0.5*C2+0.5*rho2*C3-0.25*rho2*rho2*C4;
+		Real Bx_ord4 = 0;
+		Real Bx_ord5 = 3./8.*C3+3./8.*rho2*C4+3./16.*rho4*C5-rho6*C6/4.+rho8*C7/32.;
+
+		if(order >= 1){Bx = Bx + std::pow(eps,1)*Bx_ord1;}
+		if(order >= 3){Bx = Bx + std::pow(eps,3)*Bx_ord3;}
+		if(order >= 5){Bx = Bx + std::pow(eps,5)*Bx_ord5;}
+		
+		Bx = E*Bx/299792458.;
+		return Bx;
+	}
+	
+	Real Antonins_By(Real x, Real y, Real z){
+		// Intalizing field
+		Real By = 0;
+		
+		// Defining fields by gaussian orders
+		Real By_ord0 = S0;
+		Real By_ord1 = 0;
+		Real By_ord2 = 0.5*rho2*S2-0.25*rho2*rho2*S3;
+		Real By_ord3 = 0;
+		Real By_ord4 = -0.125*S2+0.25*rho2*S3+5*0.0625*rho4*S4-0.25*std:pow(rho2,3)*S5+0.03125*rho8*S6;
+		Real By_ord5 = 0;
+
+		if(order >= 0){By = By + std::pow(eps,0)*By_ord0;}
+		if(order >= 2){By = By + std::pow(eps,2)*By_ord2;}
+		if(order >= 4){By = By + std::pow(eps,4)*By_ord4;}
+		
+		By = E*By/299792458.;
+		return By;
+	}
+	
+	Real Antonins_Bz(Real x, Real y, Real z){
+		// Intalizing field
+		Real Bz = 0;
+		return Bz;
+	}
+}
 
 using namespace amrex;
 
@@ -326,27 +481,27 @@ WarpX::InitLevelData (int lev, Real time)
        InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(),
                                                  Bfield_fp[lev][1].get(),
                                                  Bfield_fp[lev][2].get(),
-                                                 Bxfield_parser.get(),
-                                                 Byfield_parser.get(),
-                                                 Bzfield_parser.get(),
+                                                 hackerman::Antonins_Bx,
+                                                 hackerman::Antonins_By,
+                                                 hackerman::Antonins_Bz,
                                                  Bx_nodal_flag, By_nodal_flag,
                                                  Bz_nodal_flag, lev);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
                                                     Bfield_aux[lev][1].get(),
                                                     Bfield_aux[lev][2].get(),
-                                                    Bxfield_parser.get(),
-                                                    Byfield_parser.get(),
-                                                    Bzfield_parser.get(),
+                                                    hackerman::Antonins_Bx,
+                                                    hackerman::Antonins_By,
+                                                    hackerman::Antonins_Bz,
                                                     Bx_nodal_flag, By_nodal_flag,
                                                     Bz_nodal_flag, lev);
 
           InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
                                                     Bfield_cp[lev][1].get(),
                                                     Bfield_cp[lev][2].get(),
-                                                    Bxfield_parser.get(),
-                                                    Byfield_parser.get(),
-                                                    Bzfield_parser.get(),
+                                                    hackerman::Antonins_Bx,
+                                                    hackerman:Antonins_By,
+                                                   hackerman::Antonins_Bz,
                                                     Bx_nodal_flag, By_nodal_flag,
                                                     Bz_nodal_flag, lev);
        }
@@ -378,27 +533,27 @@ WarpX::InitLevelData (int lev, Real time)
        InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(),
                                                  Efield_fp[lev][1].get(),
                                                  Efield_fp[lev][2].get(),
-                                                 Exfield_parser.get(),
-                                                 Eyfield_parser.get(),
-                                                 Ezfield_parser.get(),
+                                                 hackerman::Antonins_Ex,
+                                                 hackerman::Antonins_Ey,
+                                                 hackerman::Antonins_Ez,
                                                  Ex_nodal_flag, Ey_nodal_flag,
                                                  Ez_nodal_flag, lev);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
                                                     Efield_aux[lev][1].get(),
                                                     Efield_aux[lev][2].get(),
-                                                    Exfield_parser.get(),
-                                                    Eyfield_parser.get(),
-                                                    Ezfield_parser.get(),
+													hackerman::Antonins_Ex,
+													hackerman::Antonins_Ey,
+													hackerman::Antonins_Ez,
                                                     Ex_nodal_flag, Ey_nodal_flag,
                                                     Ez_nodal_flag, lev);
 
           InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
                                                     Efield_cp[lev][1].get(),
                                                     Efield_cp[lev][2].get(),
-                                                    Exfield_parser.get(),
-                                                    Eyfield_parser.get(),
-                                                    Ezfield_parser.get(),
+													hackerman::Antonins_Ex,
+													hackerman::Antonins_Ey,
+													hackerman::Antonins_Ez,
                                                     Ex_nodal_flag, Ey_nodal_flag,
                                                     Ez_nodal_flag, lev);
        }
