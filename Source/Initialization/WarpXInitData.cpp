@@ -20,329 +20,13 @@
 #include <GpuParser.H>
 #include <WarpXUtil.H>
 
-#include <cmath>
-
-namespace QED
-{
-	// Setting the order of the paraxial approximation
-	int order = 5;
-	
-	// Defining beam paramters
-	amrex::Real E0 = 1.e12;
-	amrex::Real w0 = 1.;
-	amrex::Real psi0 = 0.;
-	amrex::Real k = 6283185307.18;
-	amrex::Real c = 299792458.;
-		
-    // Defining Gaussian constants
-    amrex::Real Zr =0.5*k*w0*w0;
-    amrex::Real eps = w0/Zr;
-    /*
-    std::string Antonins_Ex(double x, double y, double z){
-    
-		amrex::Real Ex = 0; // Intializing field
-		
-		// New coordinate system
-		amrex::Real xi = z/w0;
-		amrex::Real nu = -y/w0;
-			
-		// misclanious
-		amrex::Real R = x+Zr*Zr/x;
-		amrex::Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
-		amrex::Real r2 = z*z+y*y;
-		amrex::Real rho2 = r2/(w0*w0);
-		amrex::Real rho4 = rho2*rho2;
-		amrex::Real rho6 = rho2*rho2*rho2;
-		amrex::Real rho8 = rho2*rho2*rho2*rho2;
-		amrex::Real psip = -k*x;
-		amrex::Real psir = k*r2/(2*R);
-		amrex::Real psig = std::atan(2*x/(k*w0*w0));
-		amrex::Real psi = psi0 + psip - psir + psig;
-		amrex::Real E = E0*w0/w*std::exp(-1*r2/(w*w));
-		amrex::Real B = E/c;
-			
-		// Sine and Cosine terms
-		amrex::Real S0 = std::sin(psi);
-		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
-		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
-		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
-		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
-		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
-		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
-		  
-		amrex::Real C0 = std::sin(psi);
-		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
-		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
-		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
-		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
-		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
-		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
-		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
-        
-	    // Defining fields by gaussian orders
-	    amrex::Real Ex_ord0 = 0;
-		amrex::Real Ex_ord1 = C1;
-		amrex::Real Ex_ord2 = 0;
-		amrex::Real Ex_ord3 = -0.5*C2+rho2*C3-0.25*rho2*rho2*C4;
-		amrex::Real Ex_ord4 = 0;
-		amrex::Real Ex_ord5 = -3./8.*C3-3./8.*rho2*C4+17./16.*rho4*C5-3./8.*rho6*C6+rho8*C7/32.;
-
-		if(order >= 1){Ex = Ex + std::pow(eps,1)*Ex_ord1;}
-		if(order >= 3){Ex = Ex + std::pow(eps,3)*Ex_ord3;}
-		if(order >= 5){Ex = Ex + std::pow(eps,5)*Ex_ord5;}
-		
-		Ex = E*xi*Ex;
-		return Ex;
-		}
-	
-	amrex::Real Antonins_Ey(double x, double y, double z){
-		
-		// New coordinate system
-		amrex::Real xi = z/w0;
-		amrex::Real nu = -y/w0;
-			
-		// misclanious
-		amrex::Real R = x+Zr*Zr/x;
-		amrex::Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
-		amrex::Real r2 = z*z+y*y;
-		amrex::Real rho2 = r2/(w0*w0);
-		amrex::Real rho4 = rho2*rho2;
-		amrex::Real rho6 = rho2*rho2*rho2;
-		amrex::Real rho8 = rho2*rho2*rho2*rho2;
-		amrex::Real psip = -k*x;
-		amrex::Real psir = k*r2/(2*R);
-		amrex::Real psig = std::atan(2*x/(k*w0*w0));
-		amrex::Real psi = psi0 + psip - psir + psig;
-		amrex::Real E = E0*w0/w*std::exp(-1*r2/(w*w));
-		amrex::Real B = E/c;
-			
-		// Sine and Cosine terms
-		amrex::Real S0 = std::sin(psi);
-		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
-		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
-		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
-		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
-		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
-		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
-		  
-		amrex::Real C0 = std::sin(psi);
-		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
-		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
-		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
-		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
-		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
-		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
-		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
-		
-		// Intalizing field
-		amrex::Real Ey = 0;
-		
-		// Defining fields by gaussian orders
-		amrex::Real Ey_ord0 = 0;
-		amrex::Real Ey_ord1 = 0;
-		amrex::Real Ey_ord2 = S2;
-		amrex::Real Ey_ord3 = 0;
-		amrex::Real Ey_ord4 = rho2*S4-0.25*rho2*rho2*S5;
-		amrex::Real Ey_ord5 = 0;
-		
-		if(order >= 2){Ey = Ey + std::pow(eps,2)*Ey_ord2;}
-		if(order >= 4){Ey = Ey + std::pow(eps,4)*Ey_ord4;}
-
-		Ey = E*xi*nu*Ey;
-		return Ey;
-	}
-	
-	amrex::Real Antonins_Ez(double x, double y, double z){
-		// New coordinate system
-		amrex::Real xi = z/w0;
-		amrex::Real nu = -y/w0;
-			
-		// misclanious
-		amrex::Real R = x+Zr*Zr/x;
-		amrex::Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
-		amrex::Real r2 = z*z+y*y;
-		amrex::Real rho2 = r2/(w0*w0);
-		amrex::Real rho4 = rho2*rho2;
-		amrex::Real rho6 = rho2*rho2*rho2;
-		amrex::Real rho8 = rho2*rho2*rho2*rho2;
-		amrex::Real psip = -k*x;
-		amrex::Real psir = k*r2/(2*R);
-		amrex::Real psig = std::atan(2*x/(k*w0*w0));
-		amrex::Real psi = psi0 + psip - psir + psig;
-		amrex::Real E = E0*w0/w*std::exp(-1*r2/(w*w));
-		amrex::Real B = E/c;
-			
-		// Sine and Cosine terms
-		amrex::Real S0 = std::sin(psi);
-		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
-		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
-		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
-		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
-		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
-		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
-		  
-		amrex::Real C0 = std::sin(psi);
-		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
-		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
-		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
-		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
-		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
-		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
-		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
-		
-		// Intalizing field
-		amrex::Real Ez = 0;
-		
-		// Defining fields by gaussian orders
-		amrex::Real Ez_ord0 = S0;
-		amrex::Real Ez_ord1 = 0;
-		amrex::Real Ez_ord2 = xi*xi*S2-0.25*rho4*S3;
-		amrex::Real Ez_ord3 = 0;
-		amrex::Real Ez_ord4 = .125*S2-0.25*rho2*S3-0.0625*rho2*(rho2-16*xi*xi)*S4-0.125*rho4*(rho2+2*xi*xi)*S5+0.03125*rho8*S6;
-		amrex::Real Ez_ord5 = 0;
-
-		
-		if(order >= 2){Ez = Ez + std::pow(eps,2)*Ez_ord2;}
-		if(order >= 4){Ez = Ez + std::pow(eps,4)*Ez_ord4;}
-		
-		Ez = E*Ez;
-		return Ez;
-	}
-	
-	amrex::Real Antonins_Bx(double x, double y, double z){
-		// New coordinate system
-		amrex::Real xi = z/w0;
-		amrex::Real nu = -y/w0;
-			
-		// misclanious
-		amrex::Real R = x+Zr*Zr/x;
-		amrex::Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
-		amrex::Real r2 = z*z+y*y;
-		amrex::Real rho2 = r2/(w0*w0);
-		amrex::Real rho4 = rho2*rho2;
-		amrex::Real rho6 = rho2*rho2*rho2;
-		amrex::Real rho8 = rho2*rho2*rho2*rho2;
-		amrex::Real psip = -k*x;
-		amrex::Real psir = k*r2/(2*R);
-		amrex::Real psig = std::atan(2*x/(k*w0*w0));
-		amrex::Real psi = psi0 + psip - psir + psig;
-		amrex::Real E = E0*w0/w*std::exp(-1*r2/(w*w));
-		amrex::Real B = E/c;
-			
-		// Sine and Cosine terms
-		amrex::Real S0 = std::sin(psi);
-		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
-		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
-		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
-		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
-		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
-		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
-		  
-		amrex::Real C0 = std::sin(psi);
-		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
-		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
-		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
-		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
-		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
-		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
-		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
-		
-		// Intalizing field
-		amrex::Real Bx = 0;
-		
-		// Defining fields by gaussian orders
-		amrex::Real Bx_ord0 = 0;
-		amrex::Real Bx_ord1 = C1;
-		amrex::Real Bx_ord2 = 0;
-		amrex::Real Bx_ord3 = 0.5*C2+0.5*rho2*C3-0.25*rho2*rho2*C4;
-		amrex::Real Bx_ord4 = 0;
-		amrex::Real Bx_ord5 = 3./8.*C3+3./8.*rho2*C4+3./16.*rho4*C5-rho6*C6/4.+rho8*C7/32.;
-
-		if(order >= 1){Bx = Bx + std::pow(eps,1)*Bx_ord1;}
-		if(order >= 3){Bx = Bx + std::pow(eps,3)*Bx_ord3;}
-		if(order >= 5){Bx = Bx + std::pow(eps,5)*Bx_ord5;}
-		
-		Bx = nu*B*Bx;
-		return Bx;
-	}
-	
-	amrex::Real Antonins_By(double x, double y, double z){
-		// New coordinate system
-		amrex::Real xi = z/w0;
-		amrex::Real nu = -y/w0;
-			
-		// misclanious
-		amrex::Real R = x+Zr*Zr/x;
-		amrex::Real w = w0*std::sqrt(1+x*x/(Zr*Zr));
-		amrex::Real r2 = z*z+y*y;
-		amrex::Real rho2 = r2/(w0*w0);
-		amrex::Real rho4 = rho2*rho2;
-		amrex::Real rho6 = rho2*rho2*rho2;
-		amrex::Real rho8 = rho2*rho2*rho2*rho2;
-		amrex::Real psip = -k*x;
-		amrex::Real psir = k*r2/(2*R);
-		amrex::Real psig = std::atan(2*x/(k*w0*w0));
-		amrex::Real psi = psi0 + psip - psir + psig;
-		amrex::Real E = E0*w0/w*std::exp(-1*r2/(w*w));
-		amrex::Real B = E/c;
-			
-		// Sine and Cosine terms
-		amrex::Real S0 = std::sin(psi);
-		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
-		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
-		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
-		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
-		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
-		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
-		  
-		amrex::Real C0 = std::sin(psi);
-		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
-		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
-		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
-		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
-		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
-		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
-		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
-		
-		// Intalizing field
-		amrex::Real By = 0;
-		
-		// Defining fields by gaussian orders
-		amrex::Real By_ord0 = S0;
-		amrex::Real By_ord1 = 0;
-		amrex::Real By_ord2 = 0.5*rho2*S2-0.25*rho2*rho2*S3;
-		amrex::Real By_ord3 = 0;
-		amrex::Real By_ord4 = -0.125*S2+0.25*rho2*S3+5*0.0625*rho4*S4-0.25*std::pow(rho2,3)*S5+0.03125*rho8*S6;
-		amrex::Real By_ord5 = 0;
-
-		if(order >= 0){By = By + std::pow(eps,0)*By_ord0;}
-		if(order >= 2){By = By + std::pow(eps,2)*By_ord2;}
-		if(order >= 4){By = By + std::pow(eps,4)*By_ord4;}
-		
-		By = B*By;
-		return By;
-	}
-	
-	amrex::Real Antonins_Bz(double x, double y, double z){
-		// Intalizing field
-		amrex::Real Bz = 0;
-		return Bz;
-	}
-	*/
-	std::string Ex = "1";
-	std::string Ey = "1";
-	std::string Ez = "1";
-	std::string Bx = "1";
-	std::string By = "1";
-	std::string Bz = "1";
-}
 
 using namespace amrex;
 
 void
 WarpX::InitData ()
 {
-    BL_PROFILE("WarpX::InitData()");
+    WARPX_PROFILE("WarpX::InitData()");
 
     if (restart_chkfile.empty())
     {
@@ -624,20 +308,19 @@ WarpX::InitLevelData (int lev, Real time)
 #ifdef WARPX_DIM_RZ
        amrex::Abort("E and B parser for external fields does not work with RZ -- TO DO");
 #endif
-       std::string Glenn_Bx;
-       std::string Glenn_By;
-       std::string Glenn_Bz;
-       
-       Store_parserString(pp, QED::Bx, Glenn_Bx);
-       Store_parserString(pp, QED::By, Glenn_By);
-       Store_parserString(pp, QED::Bz, Glenn_Bz);
+       Store_parserString(pp, "Bx_external_grid_function(x,y,z)",
+                                                    str_Bx_ext_grid_function);
+       Store_parserString(pp, "By_external_grid_function(x,y,z)",
+                                                    str_By_ext_grid_function);
+       Store_parserString(pp, "Bz_external_grid_function(x,y,z)",
+                                                    str_Bz_ext_grid_function);
 
        Bxfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_Bx,{"x","y","z"})));
+                                makeParser(str_Bx_ext_grid_function,{"x","y","z"})));
        Byfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_By,{"x","y","z"})));
+                                makeParser(str_By_ext_grid_function,{"x","y","z"})));
        Bzfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_Bz,{"x","y","z"})));
+                                makeParser(str_Bz_ext_grid_function,{"x","y","z"})));
 
        // Initialize Bfield_fp with external function
        InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(),
@@ -677,21 +360,19 @@ WarpX::InitLevelData (int lev, Real time)
 #ifdef WARPX_DIM_RZ
        amrex::Abort("E and B parser for external fields does not work with RZ -- TO DO");
 #endif
-
-       std::string Glenn_Ex;
-       std::string Glenn_Ey;
-       std::string Glenn_Ez;
-       
-       Store_parserString(pp, QED::Ex, Glenn_Ex);
-       Store_parserString(pp, QED::Ey, Glenn_Ey);
-       Store_parserString(pp, QED::Ez, Glenn_Ez);
+       Store_parserString(pp, "Ex_external_grid_function(x,y,z)",
+                                                    str_Ex_ext_grid_function);
+       Store_parserString(pp, "Ey_external_grid_function(x,y,z)",
+                                                    str_Ey_ext_grid_function);
+       Store_parserString(pp, "Ez_external_grid_function(x,y,z)",
+                                                    str_Ez_ext_grid_function);
 
        Exfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_Ex,{"x","y","z"})));
+                                makeParser(str_Ex_ext_grid_function,{"x","y","z"})));
        Eyfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_Ey,{"x","y","z"})));
+                                makeParser(str_Ey_ext_grid_function,{"x","y","z"})));
        Ezfield_parser.reset(new ParserWrapper<3>(
-                                makeParser(Glenn_Ez,{"x","y","z"})));
+                                makeParser(str_Ez_ext_grid_function,{"x","y","z"})));
 
        // Initialize Efield_fp with external function
        InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(),
