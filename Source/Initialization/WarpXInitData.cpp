@@ -330,7 +330,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                  Byfield_parser.get(),
                                                  Bzfield_parser.get(),
                                                  Bx_nodal_flag, By_nodal_flag,
-                                                 Bz_nodal_flag, lev);
+                                                 Bz_nodal_flag, lev, 5, 1);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
                                                     Bfield_aux[lev][1].get(),
@@ -339,7 +339,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                     Byfield_parser.get(),
                                                     Bzfield_parser.get(),
                                                     Bx_nodal_flag, By_nodal_flag,
-                                                    Bz_nodal_flag, lev);
+                                                    Bz_nodal_flag, lev, 5, 1);
 
           InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
                                                     Bfield_cp[lev][1].get(),
@@ -348,7 +348,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                     Byfield_parser.get(),
                                                     Bzfield_parser.get(),
                                                     Bx_nodal_flag, By_nodal_flag,
-                                                    Bz_nodal_flag, lev);
+                                                    Bz_nodal_flag, lev, 5, 1);
        }
     }
 
@@ -382,7 +382,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                  Eyfield_parser.get(),
                                                  Ezfield_parser.get(),
                                                  Ex_nodal_flag, Ey_nodal_flag,
-                                                 Ez_nodal_flag, lev);
+                                                 Ez_nodal_flag, lev, 5, 0);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
                                                     Efield_aux[lev][1].get(),
@@ -391,7 +391,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                     Eyfield_parser.get(),
                                                     Ezfield_parser.get(),
                                                     Ex_nodal_flag, Ey_nodal_flag,
-                                                    Ez_nodal_flag, lev);
+                                                    Ez_nodal_flag, lev, 5, 0);
 
           InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
                                                     Efield_cp[lev][1].get(),
@@ -400,7 +400,7 @@ WarpX::InitLevelData (int lev, Real time)
                                                     Eyfield_parser.get(),
                                                     Ezfield_parser.get(),
                                                     Ex_nodal_flag, Ey_nodal_flag,
-                                                    Ez_nodal_flag, lev);
+                                                    Ez_nodal_flag, lev, 5, 0);
        }
     }
 
@@ -460,13 +460,143 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 
 #endif
 
+
+AMREX_FORCE_INLINE
+static amrex::Real Glenns_func(Real x, Real y, Real z, int field, int dim, int order = 5)
+{
+		// Defining beam paramters
+		amrex::Real E0 = 1.e12;
+		amrex::Real pi = 3.14159265358979323846;
+		amrex::Real w0 = 2.*pi;
+		amrex::Real psi0 = 0.;
+		amrex::Real k = 6283185307.18;
+		amrex::Real c = 299792458.;
+			
+		// Defining Gaussian constants
+		amrex::Real Zr = 0.5*k*w0*w0;
+		amrex::Real eps = w0/Zr;
+		
+		// New coordinate system
+		amrex::Real xi = (z*1.e6)/w0;
+		amrex::Real nu = -(y*1.e6)/w0;
+			
+		// misclanious
+		amrex::Real R = (x*1.e6)+Zr*Zr/(x*1.e6);
+		amrex::Real w = w0*std::sqrt(1+(x*1.e6)*(x*1.e6)/(Zr*Zr));
+		amrex::Real r2 = (z*1.e6)*(z*1.e6)+(y*1.e6)*(y*1.e6);
+		amrex::Real rho2 = r2/(w0*w0);
+		amrex::Real rho4 = rho2*rho2;
+		amrex::Real rho6 = rho4*rho2;
+		amrex::Real rho8 = rho4*rho4;
+		amrex::Real psip = -k*(x*1.e6);
+		amrex::Real psir = k*r2/(2*R);
+		amrex::Real psig = std::atan((x*1.e6)/Zr);
+		amrex::Real psi = psi0 + psip - psir + psig;
+		amrex::Real Ec = E0*w0/w*std::exp(-1*r2/(w*w));
+		amrex::Real Bc = Ec/c;
+			
+		// Sine and Cosine terms
+		amrex::Real S0 = std::sin(psi);
+		amrex::Real S1 = (w0/w)*std::sin(psi+psig);
+		amrex::Real S2 = std::pow(w0,2)/std::pow(w,2)*std::sin(psi + 2*psig);
+		amrex::Real S3 = std::pow(w0,3)/std::pow(w,3)*std::sin(psi + 3*psig);
+		amrex::Real S4 = std::pow(w0,4)/std::pow(w,4)*std::sin(psi + 4*psig);
+		amrex::Real S5 = std::pow(w0,5)/std::pow(w,5)*std::sin(psi + 5*psig);
+		amrex::Real S6 = std::pow(w0,6)/std::pow(w,6)*std::sin(psi + 6*psig);
+		
+		amrex::Real C0 = std::sin(psi);
+		amrex::Real C1 = (w0/w)*std::cos(psi+psig);
+		amrex::Real C2 = std::pow(w0,2)/std::pow(w,2)*std::cos(psi + 2*psig);
+		amrex::Real C3 = std::pow(w0,3)/std::pow(w,3)*std::cos(psi + 3*psig);
+		amrex::Real C4 = std::pow(w0,4)/std::pow(w,4)*std::cos(psi + 4*psig);
+		amrex::Real C5 = std::pow(w0,5)/std::pow(w,5)*std::cos(psi + 5*psig);
+		amrex::Real C6 = std::pow(w0,6)/std::pow(w,6)*std::cos(psi + 6*psig);
+		amrex::Real C7 = std::pow(w0,7)/std::pow(w,7)*std::cos(psi + 7*psig);
+		
+		amrex::Real E_ord0 = 0;
+		amrex::Real E_ord1 = 0;
+		amrex::Real E_ord2 = 0;
+		amrex::Real E_ord3 = 0;
+		amrex::Real E_ord4 = 0;
+		amrex::Real E_ord5 = 0;
+		
+		amrex::Real B_ord0 = 0;
+		amrex::Real B_ord1 = 0;
+		amrex::Real B_ord2 = 0;
+		amrex::Real B_ord3 = 0;
+		amrex::Real B_ord4 = 0;
+		amrex::Real B_ord5 = 0;
+		
+		amrex::Real return_value = 0;
+		
+		
+		if (field == 0){
+			if (dim == 0) {
+				E_ord1 = C1;
+				E_ord3 = -0.5*C2+rho2*C3-0.25*rho4*C4;
+				E_ord5 = -3./8.*C3-3./8.*rho2*C4+17./16.*rho4*C5-3./8.*rho6*C6+rho8*C7/32.;
+			}
+			
+			if (dim == 1) {
+				E_ord2 = S2;
+				E_ord4 = rho2*S4-0.25*rho4*S5;
+			}
+			
+			if (dim == 2) {
+				E_ord0 = S0;
+				E_ord2 = xi*xi*S2-0.25*rho4*S3;
+				E_ord4 = .125*S2-0.25*rho2*S3-0.0625*rho2*(rho2-16*xi*xi)*S4-0.125*rho4*(rho2+2*xi*xi)*S5+0.03125*rho8*S6;
+			}
+			
+			Real E = 0;
+			if (order >= 0){E = E + std::pow(eps,0)*E_ord0;}
+			if (order >= 1){E = E + std::pow(eps,1)*E_ord1;}
+			if (order >= 2){E = E + std::pow(eps,2)*E_ord2;}
+			if (order >= 3){E = E + std::pow(eps,3)*E_ord3;}
+			if (order >= 4){E = E + std::pow(eps,4)*E_ord4;}
+			if (order >= 5){E = E + std::pow(eps,5)*E_ord5;}
+			
+			if (dim == 0) {return_value = Ec*xi*E;}
+			if (dim == 1) {return_value = Ec*xi*nu*E;}
+			if (dim == 2) {return_value = Ec*E;}
+		}
+		
+		if (field == 1) {
+			if (dim == 0) {
+				B_ord1 = C1;
+				B_ord3 = 0.5*C2+rho2*C3-0.25*rho4*C4;
+				B_ord5 = 3./8.*C3+3./8.*rho2*C4+3./16.*rho4*C5-1./4.*rho6*C6+rho8*C7/32.;
+			}
+			
+			if (dim == 1) {
+				B_ord0 = S0;
+				B_ord2 = 0.5*rho2*S2-0.25*rho4*S3;
+				B_ord4 = -1./8.*S2+rho2*S3/4.+5./16.*rho4*S4-rho6*S5/4.+rho8*S6/32.;
+			}
+
+			Real B = 0;
+			if (order >= 0){B = B + std::pow(eps,0)*B_ord0;}
+			if (order >= 1){B = B + std::pow(eps,1)*B_ord1;}
+			if (order >= 2){B = B + std::pow(eps,2)*B_ord2;}
+			if (order >= 3){B = B + std::pow(eps,3)*B_ord3;}
+			if (order >= 4){B = B + std::pow(eps,4)*B_ord4;}
+			if (order >= 5){B = B + std::pow(eps,5)*B_ord5;}
+			
+			if (dim == 0) {return_value = Bc*nu*B;}
+			if (dim == 1) {return_value = Bc*B;}
+			if (dim == 2) {return_value = B;}
+		}
+		return return_value;
+}
+
+
 void
 WarpX::InitializeExternalFieldsOnGridUsingParser (
        MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
        ParserWrapper<3> *xfield_parser, ParserWrapper<3> *yfield_parser,
        ParserWrapper<3> *zfield_parser, IntVect x_nodal_flag,
        IntVect y_nodal_flag, IntVect z_nodal_flag,
-       const int lev)
+       const int lev, int order, int field)
 {
 
     const auto dx_lev = geom[lev].CellSizeArray();
@@ -514,7 +644,8 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the x-component of the field.
-                mfxfab(i,j,k) = (*xfield_parser)(x,y,z);
+                //mfxfab(i,j,k) = (*xfield_parser)(x,y,z);
+                mfxfab(i,j,k) = Glenns_func(x,y,z, field, 0);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
@@ -530,7 +661,8 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the y-component of the field.
-                mfyfab(i,j,k)  = (*yfield_parser)(x,y,z);
+                //mfyfab(i,j,k)  = (*yfield_parser)(x,y,z);
+                mfyfab(i,j,k)  = Glenns_func(x,y,z, field, 1);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfz_type[0]) * dx_lev[0]*0.5;
@@ -546,7 +678,8 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the z-component of the field.
-                mfzfab(i,j,k) = (*zfield_parser)(x,y,z);
+                //mfzfab(i,j,k) = (*zfield_parser)(x,y,z);
+                mfzfab(i,j,k)  = Glenns_func(x,y,z, field, 2);
             }
         );
     }
