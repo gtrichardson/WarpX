@@ -80,9 +80,9 @@ void warpx_hybrid_QED_push (
     amrex::Array4<amrex::Real> const& Bx, amrex::Array4<amrex::Real> const& By,
     amrex::Array4<amrex::Real const> const& Bz, amrex::Array4<amrex::Real> const& tmpEx,
     amrex::Array4<amrex::Real> const& tmpEy, amrex::Array4<amrex::Real> const& tmpEz,
-	amrex::Array4<amrex::Real> const& Jx, amrex::Array4<amrex::Real> const& Jy,
-	amrex::Array4<amrex::Real> const& Jz, amrex::Real dx, amrex::Real dy, amrex::Real dz,
-	amrex::Real dt, const amrex::Real xi_c2)
+    amrex::Array4<amrex::Real> const& Jx, amrex::Array4<amrex::Real> const& Jy,
+    amrex::Array4<amrex::Real> const& Jz, amrex::Real dx, amrex::Real dy, amrex::Real dz,
+    amrex::Real dt, const amrex::Real xi_c2)
 {
 
 using namespace amrex;
@@ -176,7 +176,7 @@ const amrex::Real dyi = 1./dy;
         Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*(EVxB + Emu0J) + 2._rt*(VxB[1] + mu0jy)*( ee - c2*bb )
             + 7._rt*c2*by*(BVxB + Bmu0J) ),
         Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*(EVxB + Emu0J) + 2._rt*(VxB[2] + mu0jz)*( ee - c2*bb )
-		    + 7._rt*c2*bz*(BVxB + Bmu0J) )
+            + 7._rt*c2*bz*(BVxB + Bmu0J) )
     };
 
     // Calcualting matrix values for the QED correction algorithm
@@ -300,7 +300,7 @@ const amrex::Real dyi = 1./dy;
         Alpha[0] + 2._rt*xi_c2*( 4._rt*ex*(EVxB + Emu0J) + 2._rt*(VxB[0] + mu0jx)*( ee - c2*bb )
             + 7._rt*c2*bx*(BVxB + Bmu0J) ),
         Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*(EVxB + Emu0J) + 2._rt*(VxB[1] + mu0jy)*( ee - c2*bb )
-		    + 7._rt*c2*by*(BVxB + Bmu0J) ),
+            + 7._rt*c2*by*(BVxB + Bmu0J) ),
         Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*(EVxB  +Emu0J) + 2._rt*(VxB[2] + mu0jz)*( ee - c2*bb )
             + 7._rt*c2*bz*(BVxB + Bmu0J) )
     };
