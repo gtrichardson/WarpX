@@ -112,7 +112,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-        
+
         const Box& tjx  = mfi.tilebox(jx_nodal_flag);
         const Box& tjy  = mfi.tilebox(jy_nodal_flag);
         const Box& tjz  = mfi.tilebox(jz_nodal_flag);
