@@ -8,9 +8,11 @@
 #ifndef WARPX_SPECTRAL_K_SPACE_H_
 #define WARPX_SPECTRAL_K_SPACE_H_
 
-#include <WarpX_ComplexForFFT.H>
+#include "Utils/WarpX_Complex.H"
+
 #include <AMReX_BoxArray.H>
 #include <AMReX_LayoutData.H>
+
 
 // `KVectorComponent` and `SpectralShiftFactor` hold one 1D array
 // ("ManagedVector") for each box ("LayoutData"). The arrays are
@@ -37,6 +39,7 @@ class SpectralKSpace
 {
     public:
         amrex::BoxArray spectralspace_ba;
+        SpectralKSpace() : dx(amrex::RealVect::Zero) {};
         SpectralKSpace( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
                         const amrex::RealVect realspace_dx );
@@ -51,7 +54,7 @@ class SpectralKSpace
             const amrex::DistributionMapping& dm, const int i_dim,
             const int shift_type ) const;
 
-    private:
+    protected:
         amrex::Array<KVectorComponent, AMREX_SPACEDIM> k_vec;
         // 3D: k_vec is an Array of 3 components, corresponding to kx, ky, kz
         // 2D: k_vec is an Array of 2 components, corresponding to kx, kz

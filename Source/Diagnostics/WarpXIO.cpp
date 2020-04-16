@@ -7,28 +7,27 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "WarpX.H"
+#include "FieldIO.H"
+#include "SliceDiagnostic.H"
+#include "Utils/Average.H"
+
+#ifdef WARPX_USE_OPENPMD
+#   include "Diagnostics/WarpXOpenPMD.H"
+#endif
+
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_FillPatchUtil_F.H>
-
-#include <WarpX.H>
-#include <FieldIO.H>
-
-#include "AMReX_buildInfo.H"
+#include <AMReX_buildInfo.H>
 
 #ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
+#   include <AMReX_AmrMeshInSituBridge.H>
 #endif
-
-#include "SliceDiagnostic.H"
 
 #ifdef AMREX_USE_ASCENT
-#include <ascent.hpp>
-#include <AMReX_Conduit_Blueprint.H>
-#endif
-
-#ifdef WARPX_USE_OPENPMD
-#   include "WarpXOpenPMD.H"
+#   include <ascent.hpp>
+#   include <AMReX_Conduit_Blueprint.H>
 #endif
 
 
@@ -187,11 +186,6 @@ WarpX::WriteCheckPointFile() const
 
         if (do_pml && pml[lev]) {
             pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
-        }
-
-        if (costs[lev]) {
-            VisMF::Write(*costs[lev],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "costs"));
         }
     }
 
@@ -383,16 +377,6 @@ WarpX::InitFromCheckpoint ()
                             amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
             }
         }
-
-        if (costs[lev]) {
-            const auto& cost_mf_name =
-                amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "costs");
-            if (VisMF::Exist(cost_mf_name)) {
-                VisMF::Read(*costs[lev], cost_mf_name);
-            } else {
-                costs[lev]->setVal(0.0);
-            }
-        }
     }
 
     if (do_pml)
@@ -407,14 +391,6 @@ WarpX::InitFromCheckpoint ()
     mypc->AllocData();
     mypc->Restart(restart_chkfile);
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    if (do_electrostatic) {
-        getLevelMasks(masks);
-
-        // the plus one is to convert from num_cells to num_nodes
-        getLevelMasks(gather_masks, 4 + 1);
-    }
-#endif // WARPX_DO_ELECTROSTATIC
 }
 
 
@@ -444,14 +420,14 @@ WarpX::GetCellCenteredData() {
         dcomp += 3;
         // then the charge density
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
+        AverageAndPackScalarField( *cc[lev], *charge_density, dmap[lev], dcomp, ng );
 
-        AverageAndPackScalarField( *cc[lev], *charge_density, dcomp, ng );
         cc[lev]->FillBoundary(geom[lev].periodicity());
     }
 
     for (int lev = finest_level; lev > 0; --lev)
     {
-        amrex::average_down(*cc[lev], *cc[lev-1], 0, nc, refRatio(lev-1));
+        Average::CoarsenAndInterpolate( *cc[lev-1], *cc[lev], 0, 0, nc, 0, refRatio(lev-1) );
     }
 
     return std::move(cc[0]);
@@ -484,6 +460,7 @@ WarpX::UpdateInSitu () const
 #endif
 
 #ifdef AMREX_USE_ASCENT
+    // wrap mesh data
     conduit::Node bp_mesh;
     MultiLevelToBlueprint(finest_level+1,
             amrex::GetVecOfConstPtrs(mf_avg),
@@ -493,6 +470,61 @@ WarpX::UpdateInSitu () const
             istep,
             refRatio(),
             bp_mesh);
+
+    // wrap particle data for each species
+    // we prefix the fields with "particle_{species_name}" b/c we
+    // want to to uniquely name all the fields that can be plotted
+
+    std::vector<std::string> species_names = mypc->GetSpeciesNames();
+
+    for (unsigned i = 0, n = species_names.size(); i < n; ++i)
+    {
+
+        Vector<std::string> particle_varnames;
+        Vector<std::string> particle_int_varnames;
+        std::string prefix = "particle_" + species_names[i];
+
+        // Get pc for species
+        auto& pc = mypc->GetParticleContainer(i);
+
+        // get names of real comps
+        std::map<std::string, int> real_comps_map = pc.getParticleComps();
+        std::map<std::string, int>::const_iterator r_itr = real_comps_map.begin();
+
+        // TODO: Looking at other code paths, I am not sure compile time
+        //  QED field is included in getParticleComps()?
+        while (r_itr != real_comps_map.end())
+        {
+            // get next real particle name
+            std::string varname = r_itr->first;
+            particle_varnames.push_back(prefix + "_" + varname);
+            r_itr++;
+        }
+
+        // get names of int comps
+        std::map<std::string, int> int_comps_map = pc.getParticleiComps();
+        std::map<std::string, int>::const_iterator i_itr = int_comps_map.begin();
+
+        while (i_itr != int_comps_map.end())
+        {
+            // get next real particle name
+            std::string varname = i_itr->first;
+            particle_int_varnames.push_back(prefix + "_" + varname);
+            i_itr++;
+        }
+
+        // wrap pc for current species into a blueprint topology
+        amrex::ParticleContainerToBlueprint(pc,
+                                            particle_varnames,
+                                            particle_int_varnames,
+                                            bp_mesh,
+                                            prefix);
+    }
+
+    // // If you want to save blueprint HDF5 files w/o using an Ascent
+    // // extract, you can call the following AMReX helper:
+    // const auto step = istep[0];
+    // WriteBlueprintFiles(bp_mesh,"bp_export",step,"hdf5");
 
     ascent::Ascent ascent;
     conduit::Node opts;
@@ -510,7 +542,7 @@ WarpX::UpdateInSitu () const
 
 void
 WarpX::prepareFields(
-        int const step,
+        int const /*step*/,
         Vector<std::string>& varnames,
         Vector<MultiFab>& mf_avg,
         Vector<const MultiFab*>& output_mf,
