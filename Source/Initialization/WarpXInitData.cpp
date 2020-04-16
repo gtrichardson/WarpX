@@ -469,7 +469,7 @@ static amrex::Real Glenns_func(Real x, Real y, Real z, int field, int dim, int o
 		amrex::Real pi = 3.14159265358979323846;
 		amrex::Real w0 = 2.*pi;
 		amrex::Real psi0 = 0.;
-		amrex::Real k = 6283185307.18;
+		amrex::Real k = 6.283185307*1.e5;
 		amrex::Real c = 299792458.;
 			
 		// Defining Gaussian constants
@@ -481,7 +481,7 @@ static amrex::Real Glenns_func(Real x, Real y, Real z, int field, int dim, int o
 		amrex::Real nu = -(y*1.e6)/w0;
 			
 		// misclanious
-		amrex::Real R = (x*1.e6)+Zr*Zr/(x*1.e6);
+		//amrex::Real R = (x*1.e6)+Zr*Zr/(x*1.e6);
 		amrex::Real w = w0*std::sqrt(1+(x*1.e6)*(x*1.e6)/(Zr*Zr));
 		amrex::Real r2 = (z*1.e6)*(z*1.e6)+(y*1.e6)*(y*1.e6);
 		amrex::Real rho2 = r2/(w0*w0);
@@ -489,7 +489,7 @@ static amrex::Real Glenns_func(Real x, Real y, Real z, int field, int dim, int o
 		amrex::Real rho6 = rho4*rho2;
 		amrex::Real rho8 = rho4*rho4;
 		amrex::Real psip = -k*(x*1.e6);
-		amrex::Real psir = k*r2/(2*R);
+		amrex::Real psir = k*r2*(x*1.e6)*(x*1.e6)/(2*((x*1.e6)*(x*1.e6)+Zr*Zr));
 		amrex::Real psig = std::atan((x*1.e6)/Zr);
 		amrex::Real psi = psi0 + psip - psir + psig;
 		amrex::Real Ec = E0*w0/w*std::exp(-1*r2/(w*w));
